@@ -3,7 +3,7 @@
 **Vision-OPD: Learning to See Fine-Grained Details for Multimodal LLMs via On-Policy Self-Distillation**
 
 <p align="center">
-📃 <a href="https://arxiv.org/abs/2605.18740" target="_blank">Paper</a> | 
+📃 <a href="https://arxiv.org/pdf/2605.18740" target="_blank">Paper</a> | 
 🤗 <a href="https://huggingface.co/datasets/yuanqianhao/Vision-OPD-6K">Training Dataset</a> 
 </p>
 
