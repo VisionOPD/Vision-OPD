@@ -117,29 +117,6 @@ BENCHMARK="vstar,zoombench,hrbench-4k,hrbench-8k,mme-realworld,mme-realworld-cn"
 bash eval/run_eval.sh
 ```
 
-## Project Structure
-
-```
-Vision-OPD/
-├── verl/                    # Modified verl framework with self-distillation support
-├── scripts/
-│   ├── run_vision_opd.sh    # Training launch script
-│   ├── merge_checkpoint.sh  # FSDP checkpoint merger
-│   └── prepare_data.py      # Data download & preprocessing
-├── eval/
-│   ├── run_eval.sh          # Evaluation entry point
-│   ├── prepare_data.py      # Benchmark data download & preparation
-│   ├── infer.py             # OpenAI API inference
-│   ├── judge_qwenlm.py      # LLM-based judge (API or local vLLM)
-│   ├── cal_acc.py           # Accuracy calculation
-│   └── vstar_bench_utils.py # V*Bench question formatting utilities
-├── chat_templates/
-│   └── perception_chat_template_qwen35.jinja
-├── figures/                 # Paper figures
-├── pyproject.toml
-└── LICENSE
-```
-
 ## Citation
 
 If you find Vision-OPD useful for your research, please consider citing:
