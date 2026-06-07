@@ -24,10 +24,10 @@ def pick_image_path(item):
 
 
 def make_sample_uid(item, benchmark):
-    for key in ("sample_uid", "uid", "question_id", "index", "id"):
+    for key in ("sample_uid", "uid", "index", "question_id", "id"):
         value = item.get(key)
         if value is not None and str(value) != "":
-            return f"{key}:{value}"
+            return f"{benchmark}:{key}:{value}"
     stable_obj = {
         "benchmark": benchmark,
         "images": item.get("images") or [],
@@ -226,7 +226,7 @@ def main():
                     **extra_kwargs,
                 )
                 raw_model_answer = (resp.choices[0].message.content or "").strip()
-                model_answer = normalize_model_answer(raw_model_answer)
+                model_answer = raw_model_answer
                 break
             except Exception as e:
                 if attempt == args.max_retries:
@@ -237,8 +237,6 @@ def main():
         record = dict(item)
         record["sample_uid"] = sample_uid
         record["model_answer"] = model_answer
-        if raw_model_answer and raw_model_answer != model_answer:
-            record["model_answer_raw"] = raw_model_answer
         return record
 
     start = time.time()

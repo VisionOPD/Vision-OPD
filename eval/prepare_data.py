@@ -15,6 +15,13 @@ BENCHMARK_JSON_MAP = {
     "hrbench-8k": "hr_bench_8k.json",
     "mme-realworld": "MME_RealWorld.json",
     "mme-realworld-cn": "MME_RealWorld_CN.json",
+    "mmstar": "mmstar.json",
+    "pope": "POPE.json",
+    "pope_adv": "POPE_adv.json",
+    "pope_pop": "POPE_pop.json",
+    "pope_random": "POPE_random.json",
+    "cv-bench": "cv_bench.json",
+    "mmvp": "mmvp.json",
 }
 
 
@@ -217,6 +224,167 @@ def _process_mme_realworld_rows(rows, img_dir, lang="en"):
     return data
 
 
+def prepare_mmstar(out_dir):
+    import pyarrow.parquet as pq
+
+    local_dir = out_dir / "MMStar_data"
+    snapshot_download("Lin-Chen/MMStar", repo_type="dataset", local_dir=str(local_dir))
+
+    src = local_dir / "mmstar.parquet"
+    img_dir = out_dir / "MMStar_images"
+    img_dir.mkdir(parents=True, exist_ok=True)
+
+    table = pq.read_table(str(src), columns=["index", "question", "answer", "category", "l2_category", "image"])
+    rows = table.to_pylist()
+
+    data = []
+    for row in tqdm(rows, desc="Processing MMStar images", unit="img"):
+        idx = int(row.get("index", 0))
+        img_bytes = row.get("image")
+        if not isinstance(img_bytes, (bytes, bytearray)):
+            raise ValueError(f"Invalid image bytes at index {idx}")
+
+        img_path = img_dir / f"{idx:05d}.jpg"
+        if not img_path.exists():
+            with open(img_path, "wb") as f:
+                f.write(img_bytes)
+
+        query = (row.get("question") or "").strip()
+
+        data.append({
+            "index": idx,
+            "question_id": idx,
+            "images": [str(img_path)],
+            "query": query,
+            "response": (row.get("answer") or "").strip().upper(),
+            "category": row.get("category") or "unknown",
+            "l2_category": row.get("l2_category") or "unknown",
+        })
+    return data
+
+
+def prepare_pope(out_dir, benchmark):
+    from datasets import load_dataset
+
+    local_dir = out_dir / "POPE_data"
+    snapshot_download("lmms-lab/POPE", repo_type="dataset", local_dir=str(local_dir))
+
+    img_dir = out_dir / "POPE_images"
+    img_dir.mkdir(parents=True, exist_ok=True)
+
+    split_map = {"pope": "test", "pope_adv": "adversarial", "pope_pop": "popular", "pope_random": "random"}
+    split = split_map[benchmark]
+
+    if benchmark == "pope":
+        ds = load_dataset(str(local_dir), split=split)
+    else:
+        ds = load_dataset(str(local_dir), name="Full", split=split)
+
+    post_prompt = "\nAnswer the question using a single word or phrase."
+    data = []
+    for i, row in enumerate(tqdm(ds, desc=f"Processing POPE ({split})", unit="img")):
+        rid = str(row.get("id") or i)
+        qid = str(row.get("question_id") or i)
+        category = row.get("category") or split
+        image_source = row.get("image_source") or rid
+        img = row.get("image")
+
+        img_name = f"{category}_{i:05d}_{image_source}.jpg"
+        img_path = img_dir / img_name
+        if not img_path.exists():
+            img.save(str(img_path))
+
+        question = (row.get("question") or "").strip()
+        query = question + post_prompt if not question.endswith(post_prompt.strip()) else question
+
+        data.append({
+            "index": i,
+            "id": rid,
+            "question_id": qid,
+            "images": [str(img_path)],
+            "query": query,
+            "response": (row.get("answer") or "").strip().lower(),
+            "category": category,
+            "image_source": image_source,
+        })
+    return data
+
+
+def prepare_cvbench(out_dir):
+    import pyarrow.parquet as pq
+
+    local_dir = out_dir / "CVBench_data"
+    snapshot_download("nyu-visionx/CV-Bench", repo_type="dataset", local_dir=str(local_dir))
+
+    data = []
+    for dim, parquet_name, img_subdir in [
+        ("2D", "test_2d.parquet", "CVBench_2d_images"),
+        ("3D", "test_3d.parquet", "CVBench_3d_images"),
+    ]:
+        src = local_dir / parquet_name
+        img_dir = out_dir / img_subdir
+        img_dir.mkdir(parents=True, exist_ok=True)
+
+        table = pq.read_table(str(src), columns=["idx", "type", "task", "image", "prompt", "answer", "source"])
+        rows = table.to_pylist()
+
+        for row in tqdm(rows, desc=f"Processing CV-Bench {dim}", unit="img"):
+            idx = int(row.get("idx", 0))
+            img_obj = row.get("image") or {}
+            img_bytes = img_obj.get("bytes") if isinstance(img_obj, dict) else None
+            if not isinstance(img_bytes, (bytes, bytearray)):
+                raise ValueError(f"Invalid image bytes at idx {idx}")
+
+            img_path = img_dir / f"{idx:05d}.jpg"
+            if not img_path.exists():
+                with open(img_path, "wb") as f:
+                    f.write(img_bytes)
+
+            data.append({
+                "index": idx,
+                "question_id": idx,
+                "images": [str(img_path)],
+                "query": (row.get("prompt") or "").strip(),
+                "response": (row.get("answer") or "").strip(),
+                "type": row.get("type") or dim,
+                "task": row.get("task") or "",
+                "source": row.get("source") or "",
+            })
+    return data
+
+
+def prepare_mmvp(out_dir):
+    import csv
+
+    local_dir = out_dir / "MMVP_data"
+    snapshot_download("MMVP/MMVP", repo_type="dataset", local_dir=str(local_dir))
+
+    csv_path = local_dir / "Questions.csv"
+    img_src_dir = local_dir / "MMVP Images"
+
+    data = []
+    with open(csv_path, "r", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            qid = int(row["Index"])
+            question = row["Question"].strip()
+            options = row["Options"].strip()
+            answer = row["Correct Answer"].strip()
+
+            img_path = img_src_dir / f"{qid}.jpg"
+            if not img_path.exists():
+                raise ValueError(f"Image not found: {img_path}")
+
+            data.append({
+                "index": qid,
+                "question_id": qid,
+                "images": [str(img_path)],
+                "query": f"{question} {options}",
+                "response": answer,
+            })
+    return data
+
+
 def prepare_mme_realworld(out_dir):
     rows, img_dir = _load_mme_realworld_parquet(
         "yifanzhang114/MME-RealWorld-Lmms-eval", out_dir, "MME_RealWorld_Full_images",
@@ -264,6 +432,30 @@ def main():
 
     elif benchmark in ("hrbench-4k", "hrbench-8k"):
         data = prepare_hrbench(out_dir, benchmark)
+        with open(out_json, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        print(f"Generated: {out_json} (records={len(data)})")
+
+    elif benchmark == "mmstar":
+        data = prepare_mmstar(out_dir)
+        with open(out_json, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        print(f"Generated: {out_json} (records={len(data)})")
+
+    elif benchmark in ("pope", "pope_adv", "pope_pop", "pope_random"):
+        data = prepare_pope(out_dir, benchmark)
+        with open(out_json, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        print(f"Generated: {out_json} (records={len(data)})")
+
+    elif benchmark == "cv-bench":
+        data = prepare_cvbench(out_dir)
+        with open(out_json, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        print(f"Generated: {out_json} (records={len(data)})")
+
+    elif benchmark == "mmvp":
+        data = prepare_mmvp(out_dir)
         with open(out_json, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
         print(f"Generated: {out_json} (records={len(data)})")

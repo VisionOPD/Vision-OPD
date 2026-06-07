@@ -14,6 +14,19 @@ MCQ_BENCHMARKS = [
     "vstar",
     "mme-realworld",
     "mme-realworld-cn",
+    "mmstar",
+    "cv-bench",
+]
+
+POPE_BENCHMARKS = [
+    "pope",
+    "pope_adv",
+    "pope_pop",
+    "pope_random",
+]
+
+MMVP_BENCHMARKS = [
+    "mmvp",
 ]
 
 PROMPT_TEMPLATE = (
@@ -51,6 +64,37 @@ def extract_mcq_option(answer):
     match = re.match(pattern, text)
     if match:
         return match.group(1)
+    return ""
+
+
+def pope_extract(text):
+    if not isinstance(text, str) or not text:
+        return ""
+    t = text.lstrip("*").strip()
+    if t.lower().startswith("answer"):
+        t = t.split("answer", 1)[1].lstrip(":").lstrip("*").strip()
+    t_lower = t.lower()
+    if t_lower.startswith("yes"):
+        return "yes"
+    if t_lower.startswith("no"):
+        return "no"
+    last = t.rstrip(".").rstrip("*").strip().split()[-1] if t.strip() else ""
+    last = last.lstrip("*").rstrip("*").lower()
+    if last in ("yes", "no"):
+        return last
+    return text.strip()
+
+
+def mmvp_extract(text):
+    if not isinstance(text, str) or not text:
+        return ""
+    t = text.strip().lower()
+    match = re.search(r"\(([ab])\)", t)
+    if match:
+        return f"({match.group(1)})"
+    match = re.search(r"\b([ab])\b", t)
+    if match:
+        return f"({match.group(1)})"
     return ""
 
 
@@ -157,6 +201,8 @@ def main():
     save_path = f"judge/{args.benchmark}/{args.model}_answer.jsonl"
     os.makedirs(f"judge/{args.benchmark}", exist_ok=True)
     is_mcq = args.benchmark in MCQ_BENCHMARKS
+    is_pope = args.benchmark in POPE_BENCHMARKS
+    is_mmvp = args.benchmark in MMVP_BENCHMARKS
 
     data_list = []
     with open(answer_path, "r", encoding="utf-8") as f:
@@ -181,7 +227,23 @@ def main():
         item["extracted_answer"] = extracted_answer
 
         is_correct = False
-        if has_mathruler:
+
+        if is_pope:
+            pred = pope_extract(extracted_answer)
+            if pred == gt.strip().lower():
+                is_correct = True
+                item["judge"] = "Yes"
+                item["judge_source"] = "pope_exact"
+
+        if not is_correct and is_mmvp:
+            pred = mmvp_extract(extracted_answer)
+            gt_norm = gt.strip().lower()
+            if pred and pred == gt_norm:
+                is_correct = True
+                item["judge"] = "Yes"
+                item["judge_source"] = "mmvp_option"
+
+        if not is_correct and has_mathruler:
             try:
                 is_correct = grade_answer(gt, extracted_answer)
             except Exception:
@@ -194,7 +256,7 @@ def main():
             except Exception:
                 is_letter_correct = False
 
-        if is_correct:
+        if is_correct and "judge" not in item:
             item["judge"] = "Yes"
             item["judge_source"] = "mathruler"
         elif is_letter_correct:

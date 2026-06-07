@@ -120,6 +120,62 @@ def calc_mme_realworld(judge_json, benchmark, benchmark_json):
     print(f"{benchmark} Acc: {acc_text(overall_correct, len(records))}")
 
 
+def _pope_metrics(items):
+    tp = fp = fn = tn = 0
+    for item in items:
+        gt = str(item.get("response", "")).strip().lower()
+        correct = is_correct(item)
+        if gt == "yes" and correct:
+            tp += 1
+        elif gt == "no" and not correct:
+            fp += 1
+        elif gt == "yes" and not correct:
+            fn += 1
+        else:
+            tn += 1
+    total = len(items)
+    accuracy = (tp + tn) / total if total else 0.0
+    precision = tp / (tp + fp) if (tp + fp) else 0.0
+    recall = tp / (tp + fn) if (tp + fn) else 0.0
+    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) else 0.0
+    yes_count = sum(1 for x in items if str(x.get("response", "")).strip().lower() == "yes")
+    yes_ratio = yes_count / total if total else 0.0
+    return accuracy, precision, recall, f1, yes_ratio, total
+
+
+def _pope_fmt(label, accuracy, precision, recall, f1, yes_ratio, total):
+    return (
+        f"{label}: accuracy={100*accuracy:.2f}% precision={100*precision:.2f}% "
+        f"recall={100*recall:.2f}% f1={100*f1:.2f}% yes_ratio={100*yes_ratio:.2f}% (n={total})"
+    )
+
+
+def calc_pope(judge_json, benchmark):
+    with open(judge_json, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    a, p, r, f1, yr, n = _pope_metrics(data)
+    print(_pope_fmt(benchmark, a, p, r, f1, yr, n))
+
+
+def calc_cvbench(judge_json, benchmark):
+    with open(judge_json, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    type_stats = defaultdict(lambda: {"correct": 0, "total": 0})
+    for item in data:
+        dim = str(item.get("type", "unknown") or "unknown")
+        type_stats[dim]["total"] += 1
+        if is_correct(item):
+            type_stats[dim]["correct"] += 1
+
+    acc_2d = type_stats["2D"]["correct"] / type_stats["2D"]["total"] if type_stats["2D"]["total"] else 0.0
+    acc_3d = type_stats["3D"]["correct"] / type_stats["3D"]["total"] if type_stats["3D"]["total"] else 0.0
+    acc_avg = (acc_2d + acc_3d) / 2.0
+
+    print(f"{benchmark}: {100*acc_avg:.2f}%")
+
+
 def calc_generic(judge_json, benchmark):
     with open(judge_json, "r", encoding="utf-8") as f:
         data = json.load(f)
@@ -135,7 +191,11 @@ def main():
     parser.add_argument("--benchmark_json", default=None, type=str, help="Path to original benchmark JSON (for category breakdown)")
     args = parser.parse_args()
 
-    if args.benchmark == "vstar":
+    if args.benchmark == "cv-bench":
+        calc_cvbench(args.judge_json, args.benchmark)
+    elif args.benchmark in ("pope", "pope_adv", "pope_pop", "pope_random"):
+        calc_pope(args.judge_json, args.benchmark)
+    elif args.benchmark == "vstar":
         calc_vstar(args.judge_json, args.benchmark)
     elif args.benchmark in ("hrbench-4k", "hrbench-8k"):
         if not args.benchmark_json:
