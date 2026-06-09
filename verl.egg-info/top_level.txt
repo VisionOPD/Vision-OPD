@@ -1,5 +1,0 @@
-chat_templates
-eval
-figures
-scripts
-verl
