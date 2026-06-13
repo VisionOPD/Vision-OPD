@@ -29,7 +29,7 @@ Vision-OPD is a regional-to-global on-policy self-distillation framework that tr
 ### 1. Environment Setup
 
 ```bash
-conda create -n vision-opd python=3.12
+conda create -n vision-opd python=3.12 -y
 conda activate vision-opd
 pip install --upgrade pip
 pip install --no-deps -r requirements.txt
