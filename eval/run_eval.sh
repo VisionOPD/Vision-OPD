@@ -5,7 +5,7 @@ set -euo pipefail
 # Vision-OPD Evaluation Script
 #
 # Supported benchmarks:
-#   vstar, zoombench, hrbench-4k, hrbench-8k, mme-realworld, mme-realworld-cn,
+#   vstar, zoombench, hrbench-4k, hrbench-8k, mme-realworld, mme-realworld-cn, mme-realworld-lite,
 #   mmstar, pope, pope_adv, pope_pop, pope_random, cv-bench, mmvp
 #
 # Usage:
@@ -49,6 +49,7 @@ declare -A BENCHMARK_JSON_MAP=(
   [hrbench-8k]="hr_bench_8k.json"
   [mme-realworld]="MME_RealWorld.json"
   [mme-realworld-cn]="MME_RealWorld_CN.json"
+  [mme-realworld-lite]="MME_RealWorld_Lite.json"
   [mmstar]="mmstar.json"
   [pope]="POPE.json"
   [pope_adv]="POPE_adv.json"

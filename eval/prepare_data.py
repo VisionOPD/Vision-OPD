@@ -15,6 +15,7 @@ BENCHMARK_JSON_MAP = {
     "hrbench-8k": "hr_bench_8k.json",
     "mme-realworld": "MME_RealWorld.json",
     "mme-realworld-cn": "MME_RealWorld_CN.json",
+    "mme-realworld-lite": "MME_RealWorld_Lite.json",
     "mmstar": "mmstar.json",
     "pope": "POPE.json",
     "pope_adv": "POPE_adv.json",
@@ -399,6 +400,13 @@ def prepare_mme_realworld_cn(out_dir):
     return _process_mme_realworld_rows(rows, img_dir, lang="cn")
 
 
+def prepare_mme_realworld_lite(out_dir):
+    rows, img_dir = _load_mme_realworld_parquet(
+        "yifanzhang114/MME-RealWorld-lite-lmms-eval", out_dir, "MME_RealWorld_Lite_images",
+    )
+    return _process_mme_realworld_rows(rows, img_dir, lang="en")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Prepare benchmark data from HuggingFace")
     parser.add_argument("--benchmark", required=True, type=str)
@@ -468,6 +476,12 @@ def main():
 
     elif benchmark == "mme-realworld-cn":
         data = prepare_mme_realworld_cn(out_dir)
+        with open(out_json, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        print(f"Generated: {out_json} (records={len(data)})")
+
+    elif benchmark == "mme-realworld-lite":
+        data = prepare_mme_realworld_lite(out_dir)
         with open(out_json, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
         print(f"Generated: {out_json} (records={len(data)})")

@@ -222,7 +222,7 @@ def main():
                     model=args.model_id,
                     messages=messages,
                     max_tokens=args.max_tokens,
-                    temperature=0.7,
+                    temperature=0,
                     **extra_kwargs,
                 )
                 raw_model_answer = (resp.choices[0].message.content or "").strip()

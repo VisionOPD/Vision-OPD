@@ -203,7 +203,7 @@ def main():
             calc_generic(args.judge_json, args.benchmark)
         else:
             calc_hrbench(args.judge_json, args.benchmark, args.benchmark_json)
-    elif args.benchmark in ("mme-realworld", "mme-realworld-cn"):
+    elif args.benchmark in ("mme-realworld", "mme-realworld-cn", "mme-realworld-lite"):
         if not args.benchmark_json:
             print("WARNING: --benchmark_json not provided, falling back to generic accuracy.", file=sys.stderr)
             calc_generic(args.judge_json, args.benchmark)

@@ -14,6 +14,7 @@ MCQ_BENCHMARKS = [
     "vstar",
     "mme-realworld",
     "mme-realworld-cn",
+    "mme-realworld-lite",
     "mmstar",
     "cv-bench",
 ]
