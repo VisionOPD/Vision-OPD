@@ -6,7 +6,7 @@ set -euo pipefail
 #
 # Supported benchmarks:
 #   vstar, zoombench, hrbench-4k, hrbench-8k, mme-realworld, mme-realworld-cn, mme-realworld-lite,
-#   mmstar, pope, pope_adv, pope_pop, pope_random, cv-bench, mmvp
+#   mmstar, pope, pope_adv, pope_pop, pope_random, cv-bench, mmvp, visualprobe
 #
 # Usage:
 #   API_BASE="http://localhost:8000/v1/" \
@@ -57,6 +57,7 @@ declare -A BENCHMARK_JSON_MAP=(
   [pope_random]="POPE_random.json"
   [cv-bench]="cv_bench.json"
   [mmvp]="mmvp.json"
+  [visualprobe]="visualprobe.json"
 )
 
 # Parse comma-separated benchmarks

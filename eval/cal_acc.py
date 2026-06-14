@@ -176,6 +176,28 @@ def calc_cvbench(judge_json, benchmark):
     print(f"{benchmark}: {100*acc_avg:.2f}%")
 
 
+def calc_visualprobe(judge_json, benchmark):
+    with open(judge_json, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    cat_stats = defaultdict(lambda: {"correct": 0, "total": 0})
+    for item in data:
+        category = str(item.get("category", "unknown") or "unknown")
+        cat_stats[category]["total"] += 1
+        if is_correct(item):
+            cat_stats[category]["correct"] += 1
+
+    accs = []
+    for cat in ["Easy", "Medium", "Hard"]:
+        stats = cat_stats[cat]
+        acc = (100.0 * stats["correct"] / stats["total"]) if stats["total"] else 0.0
+        accs.append(acc)
+        print(f"  {cat}: {acc:.2f}% (n={stats['total']})")
+
+    avg_acc = sum(accs) / len(accs) if accs else 0.0
+    print(f"{benchmark} average: {avg_acc:.2f}%")
+
+
 def calc_generic(judge_json, benchmark):
     with open(judge_json, "r", encoding="utf-8") as f:
         data = json.load(f)
@@ -191,7 +213,9 @@ def main():
     parser.add_argument("--benchmark_json", default=None, type=str, help="Path to original benchmark JSON (for category breakdown)")
     args = parser.parse_args()
 
-    if args.benchmark == "cv-bench":
+    if args.benchmark == "visualprobe":
+        calc_visualprobe(args.judge_json, args.benchmark)
+    elif args.benchmark == "cv-bench":
         calc_cvbench(args.judge_json, args.benchmark)
     elif args.benchmark in ("pope", "pope_adv", "pope_pop", "pope_random"):
         calc_pope(args.judge_json, args.benchmark)
