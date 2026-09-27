@@ -1,4 +1,4 @@
-# Vision-OPD
+# [NeurIPS 2026] Vision-OPD
 
 **Vision-OPD: Learning to See Fine-Grained Details for Multimodal LLMs via On-Policy Self-Distillation**
 
